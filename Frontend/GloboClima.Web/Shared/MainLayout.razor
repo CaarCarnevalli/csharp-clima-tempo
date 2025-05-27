@@ -1,0 +1,33 @@
+@* Layout principal da aplicação. *@
+@* Define a estrutura comum para todas as páginas, incluindo o menu de navegação e a área de conteúdo. *@
+@inherits LayoutComponentBase
+
+@* Container principal da página, ocupa toda a altura da viewport. *@
+<div class="page">
+    @* Elemento principal que agrupa o menu de navegação e o conteúdo da página. *@
+    <main>
+        @* Componente do menu de navegação. *@
+        <NavMenu />
+        @* Área onde o conteúdo específico de cada página (@Body) será renderizado. *@
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@* Componente para exibir notificações (toasts) globalmente na aplicação. *@
+<Toast />
+
+@* Estilos CSS específicos para o MainLayout. *@
+<style>
+    // Estiliza o container principal da página.
+    .page {
+        min-height: 100vh; // Garante que a página ocupe pelo menos toda a altura da tela.
+        background-color: var(--bs-body-bg); // Define a cor de fundo usando uma variável CSS do Bootstrap.
+    }
+
+    // Estiliza o elemento main, adicionando um espaçamento no topo.
+    main {
+        padding-top: 5.5rem; // Adiciona um preenchimento superior para evitar que o conteúdo fique sob o NavMenu fixo (se aplicável).
+    }
+</style> 

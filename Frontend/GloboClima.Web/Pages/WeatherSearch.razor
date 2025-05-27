@@ -1,0 +1,257 @@
+@* Página para exibir e pesquisar informações climáticas de uma cidade. *@
+@* Permite ao usuário buscar o clima de uma cidade e, se autenticado, adicionar a cidade aos favoritos. *@
+@page "/weather"
+@inject WeatherService WeatherService
+@inject FavoriteService FavoriteService
+@inject NavigationManager NavigationManager
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+<PageTitle>GloboClima - Consulta de Clima</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-body p-4">
+                    <h1 class="h2 mb-4 fw-bold">Consulta de Clima</h1>
+                    
+                    <div class="input-group mb-4 shadow-sm">
+                        <input type="text" class="form-control form-control-lg" 
+                               placeholder="Digite o nome da cidade" 
+                               @bind="cityName" 
+                               @onkeypress="HandleKeyPress" />
+                        <button class="btn btn-primary px-4" @onclick="SearchWeather" disabled="@IsSearchButtonDisabled()">
+                            <i class="bi bi-search me-2"></i>Buscar
+                        </button>
+                    </div>
+
+                    @if (isLoading)
+                    {
+                        <div class="d-flex justify-content-center my-5 py-5">
+                            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                            <span class="ms-3 fs-4">Carregando dados do clima...</span>
+                        </div>
+                    }
+                    else if (weather != null)
+                    {
+                        <div class="card shadow-lg border-0">
+                            <div class="card-header bg-primary text-white p-4 d-flex justify-content-between align-items-center">
+                                <h2 class="mb-0">Clima em @weather.City, @weather.Country</h2>
+                                <AuthorizeView>
+                                    <Authorized>
+                                        <button class="btn btn-outline-light" @onclick="AddToFavorites" disabled="@IsFavoriteButtonDisabled()">
+                                            <i class="bi bi-star-fill me-1"></i> @(isFavoriteProcessing ? "Adicionando..." : "Adicionar aos Favoritos")
+                                        </button>
+                                    </Authorized>
+                                    <NotAuthorized>
+                                        <a href="login" class="btn btn-outline-light">
+                                            <i class="bi bi-person-fill me-1"></i> Login para favoritar
+                                        </a>
+                                    </NotAuthorized>
+                                </AuthorizeView>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="row">
+                                    <div class="col-md-6 mb-4 mb-md-0">
+                                        <div class="text-center text-md-start">
+                                            @if (!string.IsNullOrEmpty(weather.IconUrl))
+                                            {
+                                                <img src="@weather.IconUrl" alt="@weather.Description" class="mb-2" style="width: 64px; height: 64px;" />
+                                            }
+                                            <h2 class="card-title h3 mb-3">@weather.Description</h2>
+                                            <div class="display-3 fw-bold mb-3">@weather.Temperature.ToString("F1") °C</div>
+                                            <p class="fs-5 text-muted">Sensação térmica de @weather.FeelsLike.ToString("F1") °C</p>
+                                            @if (!string.IsNullOrEmpty(weather.LocalTime))
+                                            {
+                                                <p class="fs-5 text-muted">
+                                                    <i class="bi bi-clock me-2"></i>
+                                                    Horário local: @DateTime.Parse(weather.LocalTime).ToString("HH:mm, dd/MM/yyyy")
+                                                </p>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <h3 class="h4 mb-4">Detalhes Adicionais</h3>
+                                                <div class="mb-3">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <i class="bi bi-droplet-fill text-primary me-2"></i>
+                                                        <strong>Umidade:</strong>
+                                                    </div>
+                                                    <div class="fs-5">@weather.Humidity%</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <i class="bi bi-wind text-primary me-2"></i>
+                                                        <strong>Velocidade do Vento:</strong>
+                                                    </div>
+                                                    <div class="fs-5">@weather.WindSpeed km/h</div>
+                                                </div>
+                                                <div>
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <i class="bi bi-sun text-primary me-2"></i>
+                                                        <strong>Índice UV:</strong>
+                                                    </div>
+                                                    <div class="fs-5">@weather.UvIndex.ToString("F1")</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(favoriteMessage))
+                        {
+                            <div class="alert @(favoriteSuccess ? "alert-success" : "alert-danger") d-flex align-items-center shadow-sm">
+                                <i class="bi @(favoriteSuccess ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill") me-2 fs-4"></i>
+                                <div>@favoriteMessage</div>
+                            </div>
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger d-flex align-items-center shadow-sm p-4 my-4">
+                            <i class="bi bi-exclamation-triangle-fill me-2 fs-3"></i>
+                            <div class="fs-5">@errorMessage</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center my-5 py-4">
+                            <i class="bi bi-cloud-sun text-primary" style="font-size: 5rem;"></i>
+                            <p class="mt-3 fs-5 text-muted">Digite o nome de uma cidade para consultar o clima atual.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Lógica da página para buscar e exibir informações climáticas e gerenciar favoritos.
+
+    // Nome da cidade para a busca
+    private string cityName = string.Empty;
+    private WeatherDto? weather;
+    private bool isLoading = false;
+    private string? errorMessage;
+    private string? favoriteMessage;
+    private bool favoriteSuccess = false;
+    // Estado do processamento ao adicionar um favorito
+    private bool isFavoriteProcessing = false;
+
+    // Método executado ao inicializar o componente.
+    // Verifica se um nome de cidade foi passado como parâmetro na URL e inicia a busca automaticamente.
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        var query = uri.Query;
+        if (!string.IsNullOrEmpty(query))
+        {
+            var cityParam = query.TrimStart('?').Split('&')
+                .Select(param => param.Split('='))
+                .FirstOrDefault(pair => pair[0] == "city");
+
+            if (cityParam != null && cityParam.Length > 1)
+            {
+                cityName = Uri.UnescapeDataString(cityParam[1]);
+                await SearchWeather();
+            }
+        }
+    }
+
+    // Verifica se o botão de busca deve estar desabilitado (enquanto carrega ou se o campo de cidade está vazio).
+    private bool IsSearchButtonDisabled() => isLoading || string.IsNullOrWhiteSpace(cityName);
+    // Verifica se o botão de adicionar aos favoritos deve estar desabilitado (se não houver dados de clima ou se já estiver processando).
+    private bool IsFavoriteButtonDisabled() => weather == null || isFavoriteProcessing;
+
+    // Manipula o evento de pressionar tecla no campo de busca (executa a busca ao pressionar Enter).
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchWeather();
+        }
+    }
+
+    // Busca as informações climáticas para a cidade informada.
+    private async Task SearchWeather()
+    {
+        if (string.IsNullOrWhiteSpace(cityName)) return;
+
+        isLoading = true;
+        errorMessage = null;
+        favoriteMessage = null;
+        weather = null;
+
+        try
+        {
+            weather = await WeatherService.GetWeatherAsync(cityName);
+            if (weather == null)
+            {
+                errorMessage = $"Não foi possível encontrar o clima para '{cityName}'. Verifique o nome da cidade.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ocorreu um erro ao buscar o clima: {ex.Message}";
+            Console.WriteLine($"Exception in SearchWeather: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Adiciona a cidade atual aos favoritos do usuário.
+    private async Task AddToFavorites()
+    {
+        if (weather == null || string.IsNullOrEmpty(weather.City)) return;
+        
+        isFavoriteProcessing = true;
+        favoriteMessage = null;
+
+        try
+        {
+            var requestDto = new AddFavoriteRequestDto 
+            { 
+                CityName = weather.City, 
+                Country = weather.Country
+            };
+            
+            var response = await FavoriteService.AddFavoriteAsync(requestDto);
+            
+            if (response.IsSuccess)
+            {
+                favoriteMessage = $"{weather.City} adicionado aos favoritos com sucesso!";
+                favoriteSuccess = true;
+            }
+            else
+            {
+                favoriteMessage = response.ErrorMessage ?? $"Erro ao adicionar {weather.City} aos favoritos.";
+                if (response.StatusCode == 409) // Conflict
+                {
+                    favoriteMessage = response.ErrorMessage ?? $"{weather.City} já está nos seus favoritos.";
+                }
+                favoriteSuccess = false;
+            }
+        }
+        catch (Exception ex) // Exceções inesperadas da chamada de serviço ou do próprio componente
+        {
+            favoriteMessage = $"Erro crítico ao adicionar favorito: {ex.Message}";
+            favoriteSuccess = false;
+            Console.WriteLine($"Exception in AddToFavorites: {ex}");
+        }
+        finally
+        {
+            isFavoriteProcessing = false;
+        }
+    }
+}
+

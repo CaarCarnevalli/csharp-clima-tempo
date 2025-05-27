@@ -1,0 +1,141 @@
+@* Página de registro *@
+@page "/register"
+@* @using GloboClima.Application.DTOs  Removido *@
+@using System.Net.Http.Json
+@using Blazored.LocalStorage
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager NavigationManager
+@inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthStateProvider
+@inject AuthService AuthService
+
+@* Título da página *@
+<PageTitle>GloboClima - Registro</PageTitle>
+
+@* Container principal *@
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            @* Cartão de registro *@
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center py-3">
+                    <h2 class="mb-0">Criar Conta</h2>
+                </div>
+                <div class="card-body p-4">
+                    @* Mensagem de sucesso *@
+                    @if (showSuccessMessage)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            Registro realizado com sucesso! Você pode fazer login agora.
+                        </div>
+                    }
+                    @* Mensagem de erro *@
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            @errorMessage
+                        </div>
+                    }
+
+                    @* Formulário de registro *@
+                    <EditForm Model="@registerModel" OnValidSubmit="HandleRegister">
+                        <DataAnnotationsValidator />
+
+                        @* Campo de usuário *@
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Nome de Usuário</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+                                <InputText id="username" class="form-control" @bind-Value="registerModel.Username" placeholder="Escolha um nome de usuário" />
+                            </div>
+                            <ValidationMessage For="@(() => registerModel.Username)" class="text-danger" />
+                        </div>
+
+                        @* Campo de e-mail *@
+                        <div class="mb-3">
+                            <label for="email" class="form-label">E-mail</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-envelope-fill"></i></span>
+                                <InputText id="email" type="email" class="form-control" @bind-Value="registerModel.Email" placeholder="Digite seu e-mail" />
+                            </div>
+                            <ValidationMessage For="@(() => registerModel.Email)" class="text-danger" />
+                        </div>
+
+                        @* Campo de senha *@
+                        <div class="mb-4">
+                            <label for="password" class="form-label">Senha</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                                <InputText id="password" type="password" class="form-control" @bind-Value="registerModel.Password" placeholder="Crie uma senha" />
+                            </div>
+                            <ValidationMessage For="@(() => registerModel.Password)" class="text-danger" />
+                            @* <small class="text-muted">A senha deve ter pelo menos 6 caracteres</small> *@
+                        </div>
+
+                        @* Botão de registro *@
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>Processando...</span>
+                                }
+                                else
+                                {
+                                    <span>Registrar</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+
+                    @* Link para login *@
+                    <div class="text-center mt-4">
+                        <p class="mb-0">Já tem uma conta? <a href="login" class="text-primary fw-bold">Faça login</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Código da página *@
+@code {
+    // Modelo de registro
+    private RegisterRequestDto registerModel = new RegisterRequestDto();
+    private bool isLoading = false;
+    private string? errorMessage;
+    private bool showSuccessMessage = false;
+
+    // Método para lidar com o registro
+    private async Task HandleRegister()
+    {
+        isLoading = true;
+        errorMessage = null;
+        showSuccessMessage = false;
+
+        try
+        {
+            var success = await AuthService.Register(registerModel);
+            if (success)
+            {
+                showSuccessMessage = true;
+                // Opcional: redirecionar para login após um tempo ou deixar o usuário clicar
+                // NavigationManager.NavigateTo("/login");
+            }
+            else
+            {
+                errorMessage = "Falha no registro. Verifique os dados ou tente um nome de usuário/email diferente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao processar registro: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

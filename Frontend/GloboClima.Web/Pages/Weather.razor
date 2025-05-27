@@ -1,0 +1,154 @@
+﻿@* Página de clima *@
+@page "/weather-legacy"
+@inject WeatherService WeatherService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+@* Título da página *@
+<PageTitle>GloboClima - Clima</PageTitle>
+
+@* Container principal *@
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            @* Cartão de clima *@
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-4">
+                    @* Carregando clima *@
+                    @if (isLoading)
+                    {
+                        <div class="d-flex justify-content-center my-5 py-5">
+                            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                            <span class="ms-3 fs-4">Carregando informações do clima...</span>
+                        </div>
+                    }
+                    @* Exibindo clima *@
+                    else if (weather != null)
+                    {
+                        <div class="card mb-4 shadow border-0">
+                            <div class="card-header bg-info text-white p-3">
+                                <span class="fs-4"><i class="bi bi-cloud-sun me-2"></i>Informações sobre o clima em @weather.City</span>
+                            </div>
+                            <div class="card-body p-4">
+                                @* Descrição do clima *@
+                                <h3 class="h5">Descrição do clima</h3>
+                                <p>@weather.Description</p>
+
+                                @* Temperatura *@
+                                <h3 class="h5">Temperatura</h3>
+                                <p>@weather.Temperature.ToString("F2")°C</p>
+
+                                @* Sensação térmica *@
+                                <h3 class="h5">Sensação térmica</h3>
+                                <p>@weather.FeelsLike.ToString("F2")°C</p>
+
+                                @* Umidade *@
+                                <h3 class="h5">Umidade</h3>
+                                <p>@weather.Humidity%</p>
+
+                                @* Velocidade do vento *@
+                                <h3 class="h5">Velocidade do vento</h3>
+                                <p>@weather.WindSpeed m/s</p>
+
+                                @* Ícone do clima *@
+                                <h3 class="h5">Ícone do clima</h3>
+                                <img src="@weather.IconUrl" alt="@weather.IconUrl" class="img-fluid rounded border shadow-sm" style="max-height: 150px;" />
+                            </div>
+                        </div>
+                    }
+                    @* Erro ao carregar clima *@
+                    else if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger d-flex align-items-center shadow-sm p-4 my-4">
+                            <i class="bi bi-exclamation-triangle-fill me-2 fs-3"></i>
+                            <div class="fs-5">@errorMessage</div>
+                        </div>
+                    }
+                    @* Sem clima *@
+                    else
+                    {
+                        <div class="text-center my-5 py-4">
+                            <i class="bi bi-cloud-sun text-primary" style="font-size: 5rem;"></i>
+                            <p class="mt-3 fs-5 text-muted">Digite o nome de uma cidade para consultar o clima.</p>
+                            <div class="mt-4">
+                                <a href="country" class="btn btn-primary">
+                                    <i class="bi bi-globe-americas me-1"></i>Consultar clima
+                                </a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Código da página *@
+@code {
+    // Clima
+    private WeatherDto? weather;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private string? city;
+
+    // Inicialização da página
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/weather-legacy")}", true);
+            return;
+        }
+
+        city = NavigationManager.Uri.Split('?').Last().Split('=').Last();
+        if (string.IsNullOrEmpty(city))
+        {
+            errorMessage = "Erro ao identificar cidade. Por favor, tente novamente.";
+            return;
+        }
+
+        await LoadWeather();
+    }
+
+// Carregar clima
+private async Task LoadWeather()
+{
+    isLoading = true;
+    errorMessage = null;
+    weather = null;
+
+    try
+    {
+        if (!string.IsNullOrEmpty(city))
+        {
+            var result = await WeatherService.GetWeatherAsync(city);
+            if (result != null)
+            {
+                weather = result;
+            }
+            else
+            {
+                errorMessage = "Não foi possível encontrar informações para a cidade.";
+            }
+        }
+        else
+        {
+            errorMessage = "Nome da cidade não pode ser nulo ou vazio.";
+        }
+    }
+    catch (Exception ex)
+    {
+        errorMessage = "Ocorreu um erro ao carregar o clima. Por favor, tente novamente.";
+        Console.WriteLine($"Error in LoadWeather: {ex}");
+    }
+    finally
+    {
+        isLoading = false;
+    }
+}
+}

@@ -1,0 +1,196 @@
+@* Página de favoritos *@
+@page "/favorites"
+@using GloboClima.Web.Services
+@inject FavoriteService FavoriteService
+@inject NavigationManager NavigationManager
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILocalStorageService LocalStorage
+@attribute [Authorize]
+
+@* Título da página *@
+<PageTitle>GloboClima - Meus Favoritos</PageTitle>
+
+@* Container principal *@
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            @* Cartão de favoritos *@
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-header bg-primary text-white p-3">
+                    <h1 class="h2 mb-0 fw-bold">Meus Favoritos</h1>
+                </div>
+                <div class="card-body p-4">
+                    @* Carregando favoritos *@
+                    @if (isLoading)
+                    {
+                        <div class="d-flex justify-content-center my-5 py-5">
+                            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                            <span class="ms-3 fs-4">Carregando seus favoritos...</span>
+                        </div>
+                    }
+                    @* Exibindo favoritos *@
+                    else if (favorites != null && favorites.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Cidade</th>
+                                        <th>País</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var favorite in favorites)
+                                    {
+                                        <tr>
+                                            <td>@favorite.CityName</td>
+                                            <td>@favorite.Country</td>
+                                            <td>
+                                                <div class="d-flex gap-2">
+                                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => NavigateToWeather(favorite.CityName)">
+                                                        <i class="bi bi-cloud-sun me-1"></i>Ver Clima
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteFavorite(favorite)" disabled="@isDeleting">
+                                                        <i class="bi bi-trash me-1"></i>@(isDeleting ? "Removendo..." : "Remover")
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    @* Erro ao carregar favoritos *@
+                    else if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger d-flex align-items-center shadow-sm p-4 my-4">
+                            <i class="bi bi-exclamation-triangle-fill me-2 fs-3"></i>
+                            <div class="fs-5">@errorMessage</div>
+                        </div>
+                    }
+                    @* Sem favoritos *@
+                    else
+                    {
+                        <div class="text-center my-5 py-4">
+                            <i class="bi bi-star text-primary" style="font-size: 5rem;"></i>
+                            <p class="mt-3 fs-5 text-muted">Você ainda não tem favoritos.</p>
+                            <div class="mt-4">
+                                <a href="weather" class="btn btn-primary">
+                                    <i class="bi bi-cloud-sun me-1"></i>Adicionar Favoritos
+                                </a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Código da página *@
+@code {
+    // Favoritos
+    private List<FavoriteDto>? favorites;
+    private bool isLoading = true;
+    private bool isDeleting = false;
+    private string? errorMessage;
+    private string? userId;
+
+    // Inicialização da página
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/favorites")}", true);
+            return;
+        }
+
+        userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            errorMessage = "Erro ao identificar usuário. Por favor, faça login novamente.";
+            return;
+        }
+
+        await LoadFavorites();
+    }
+
+    // Carregar favoritos
+    private async Task LoadFavorites()
+    {
+        isLoading = true;
+        errorMessage = null;
+        favorites = null;
+
+        try
+        {
+            var result = await FavoriteService.GetFavoritesByUserIdAsync();
+            if (result != null)
+            {
+                favorites = result.ToList();
+            }
+            else
+            {
+                favorites = new List<FavoriteDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Ocorreu um erro ao carregar seus favoritos. Por favor, tente novamente.";
+            Console.WriteLine($"Error in LoadFavorites: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Navegar para o clima
+    private void NavigateToWeather(string? cityName)
+    {
+        if (!string.IsNullOrEmpty(cityName))
+        {
+            NavigationManager.NavigateTo($"/weather?city={Uri.EscapeDataString(cityName)}");
+        }
+    }
+
+    // Remover favorito
+    private async Task DeleteFavorite(FavoriteDto favorite)
+    {
+        if (favorite == null || string.IsNullOrEmpty(favorite.UserId) || string.IsNullOrEmpty(favorite.CityName)) return;
+
+        try
+        {
+            isDeleting = true;
+            var favoriteId = $"{favorite.UserId}#{favorite.CityName}";
+            var response = await FavoriteService.RemoveFavoriteAsync(favoriteId);
+            if (response.IsSuccess)
+            {
+                await LoadFavorites();
+                ToastService.ShowSuccess("Favorito removido com sucesso!");
+            }
+            else
+            {
+                ToastService.ShowError(response.ErrorMessage ?? "Erro ao remover favorito.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Erro ao remover favorito. Por favor, tente novamente.");
+            Console.WriteLine($"Error in DeleteFavorite: {ex}");
+        }
+        finally
+        {
+            isDeleting = false;
+            StateHasChanged();
+        }
+    }
+}

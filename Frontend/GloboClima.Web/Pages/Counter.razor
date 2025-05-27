@@ -1,0 +1,26 @@
+﻿@* Página de contador *@
+@page "/counter"
+
+@* Título da página *@
+<PageTitle>GloboClima - Contador</PageTitle>
+
+@* Título da página *@
+<h1>Contador</h1>
+
+@* Exibe o contador atual *@
+<p role="status">Contagem atual: @currentCount</p>
+
+@* Botão para incrementar o contador *@
+<button class="btn btn-primary" @onclick="IncrementCount">Clique aqui</button>
+
+@* Código da página *@
+@code {
+    // Contador atual
+    private int currentCount = 0;
+
+    // Método para incrementar o contador
+    private void IncrementCount()
+    {
+        currentCount++;
+    }
+}

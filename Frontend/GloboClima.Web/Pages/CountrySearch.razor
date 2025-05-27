@@ -1,0 +1,210 @@
+@* Página de busca de países *@
+@page "/country"
+@inject CountryService CountryService
+
+@* Título da página *@
+<PageTitle>GloboClima - Consulta de Países</PageTitle>
+
+@* Container principal *@
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            @* Cartão de busca *@
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-body p-4">
+                    <h1 class="h2 mb-4 fw-bold">Consulta de Informações de Países</h1>
+
+                    @* Campo de busca *@
+                    <div class="input-group mb-4 shadow-sm">
+                        <input type="text" class="form-control form-control-lg"
+                               placeholder="Digite o nome do país (em inglês)"
+                               @bind="countryNameInput"
+                               @onkeypress="HandleKeyPress" />
+                        <button class="btn btn-primary px-4" @onclick="SearchCountry" disabled="@IsSearchButtonDisabled()">
+                            <i class="bi bi-search me-2"></i>Buscar
+                        </button>
+                    </div>
+
+                    @* Carregando informações *@
+                    @if (isLoading)
+                    {
+                        <div class="d-flex justify-content-center my-5 py-5">
+                            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                            <span class="ms-3 fs-4">Carregando informações do país...</span>
+                        </div>
+                    }
+                    @* Exibindo informações *@
+                    else if (country != null)
+                    {
+                        <div class="card mb-4 shadow border-0">
+                            <div class="card-header bg-info text-white p-3">
+                                <span class="fs-4"><i class="bi bi-globe-americas me-2"></i>Informações sobre @country.Name</span>
+                            </div>
+                            <div class="card-body p-4">
+                                @* Bandeira do país *@
+                                @if (!string.IsNullOrEmpty(country.FlagUrl))
+                                {
+                                    <div class="text-center mb-4">
+                                        <img src="@country.FlagUrl" alt="@country.FlagDescription" class="img-fluid rounded border shadow-sm" style="max-height: 150px;" />
+                                    </div>
+                                }
+                                @* Informações do país *@
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h3 class="h5">Detalhes Principais</h3>
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item bg-transparent px-0"><strong>Nome:</strong> @country.Name</li>
+                                            <li class="list-group-item bg-transparent px-0"><strong>Capital:</strong> @(country.Capital ?? "N/A")</li>
+                                            <li class="list-group-item bg-transparent px-0"><strong>Região:</strong> @(country.Region ?? "N/A")</li>
+                                            <li class="list-group-item bg-transparent px-0">
+                                                <strong>População:</strong> @(country.Population > 0 ? country.Population.ToString("N0") : "N/A")
+                                            </li>
+                                        </ul>
+
+                                        @* Idiomas *@
+                                        @if (country.Languages != null && country.Languages.Any())
+                                        {
+                                            <h3 class="h5 mt-4">Idiomas</h3>
+                                            <ul class="list-group list-group-flush">
+                                                @foreach (var language in country.Languages)
+                                                {
+                                                    <li class="list-group-item bg-transparent px-0">@language.Value</li>
+                                                }
+                                            </ul>
+                                        }
+
+                                        @* Moedas *@
+                                        @if (country.Currencies != null && country.Currencies.Any())
+                                        {
+                                            <h3 class="h5 mt-4">Moedas</h3>
+                                            <ul class="list-group list-group-flush">
+                                                @foreach (var currency in country.Currencies)
+                                                {
+                                                    <li class="list-group-item bg-transparent px-0">
+                                                        <strong>@currency.Key:</strong> @currency.Value.Name (@currency.Value.Symbol)
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+                                    </div>
+                                    <div class="col-md-6">
+                                        @* Fronteiras *@
+                                        <h3 class="h5">Fronteiras</h3>
+                                        @if (country.Borders != null && country.Borders.Any())
+                                        {
+                                            <div class="d-flex flex-wrap gap-2">
+                                                @foreach (var border in country.Borders)
+                                                {
+                                                    <div class="border rounded p-2">
+                                                        <i class="bi bi-globe-americas me-2 text-primary"></i>
+                                                        <span>@border</span>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <p>Sem fronteiras terrestres listadas.</p>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    @* Erro ao carregar informações *@
+                    else if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger d-flex align-items-center shadow-sm p-4 my-4">
+                            <i class="bi bi-exclamation-triangle-fill me-2 fs-3"></i>
+                            <div class="fs-5">@errorMessage</div>
+                        </div>
+                    }
+                    @* Sem informações *@
+                    else
+                    {
+                        <div class="text-center my-5 py-4">
+                            <i class="bi bi-flag-fill text-primary" style="font-size: 5rem;"></i>
+                            <p class="mt-3 fs-5 text-muted">Digite o nome de um país para consultar suas informações.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Código da página *@
+@code {
+    // Campo de busca
+    private string countryNameInput = string.Empty;
+    private CountryDto? country;
+    private bool isLoading = false;
+    private string? errorMessage;
+
+    // Método para verificar se o botão de busca está desabilitado
+    private bool IsSearchButtonDisabled() => isLoading || string.IsNullOrWhiteSpace(countryNameInput);
+
+    // Método para lidar com a tecla pressionada
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchCountry();
+        }
+    }
+
+    // Método para buscar o país
+    private async Task SearchCountry()
+    {
+        if (string.IsNullOrWhiteSpace(countryNameInput))
+        {
+            errorMessage = "Por favor, digite o nome de um país.";
+            country = null;
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        country = null;
+
+        try
+        {
+            country = await CountryService.GetCountryByNameAsync(countryNameInput);
+            if (country == null)
+            {
+                errorMessage = $"Não foi possível encontrar informações para o país '{countryNameInput}'. Verifique o nome (use inglês).";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ocorreu um erro ao buscar informações do país: {ex.Message}";
+            Console.WriteLine($"Exception in SearchCountry: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Método para obter o nome do país
+    private string GetCountryName(string code)
+    {
+        var countryNames = new Dictionary<string, string>
+        {
+            {"ARG", "Argentina"},
+            {"BOL", "Bolívia"},
+            {"COL", "Colômbia"},
+            {"GUF", "Guiana Francesa"},
+            {"GUY", "Guiana"},
+            {"PRY", "Paraguai"},
+            {"PER", "Peru"},
+            {"SUR", "Suriname"},
+            {"URY", "Uruguai"},
+            {"VEN", "Venezuela"}
+        };
+
+        return countryNames.TryGetValue(code, out var name) ? name : code;
+    }
+}

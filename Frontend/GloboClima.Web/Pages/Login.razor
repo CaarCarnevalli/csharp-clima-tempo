@@ -1,0 +1,110 @@
+@* Página de login *@
+@page "/login"
+@* @using GloboClima.Application.DTOs - Removido *@
+@* @using System.Net.Http.Json - Já incluso globalmente ou não é mais necessário diretamente aqui *@
+@* @using Blazored.LocalStorage - Removido, gerenciado pelo AuthStateProvider/AuthService *@
+@inject AuthService AuthService // Injetar o serviço AuthService
+@inject NavigationManager NavigationManager
+@inject ToastService ToastService
+@* @inject AuthenticationStateProvider AuthStateProvider - Usado indiretamente pelo AuthService *@
+
+@* Título da página *@
+<PageTitle>GloboClima - Login</PageTitle>
+
+@* Container principal *@
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            @* Cartão de login *@
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h2 class="text-center mb-4">Login</h2>
+
+                    @* Formulário de login *@
+                    <EditForm Model="@loginRequest" OnValidSubmit="HandleLogin">
+                        <DataAnnotationsValidator />
+
+                        @* Campo de usuário *@
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Usuário</label>
+                            <InputText id="username" class="form-control" @bind-Value="loginRequest.Username" />
+                            <ValidationMessage For="@(() => loginRequest.Username)" />
+                        </div>
+
+                        @* Campo de senha *@
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Senha</label>
+                            <InputText type="password" id="password" class="form-control" @bind-Value="loginRequest.Password" />
+                            <ValidationMessage For="@(() => loginRequest.Password)" />
+                        </div>
+
+                        @* Mensagem de erro *@
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger" role="alert">
+                                @errorMessage
+                            </div>
+                        }
+
+                        @* Botão de login *@
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                    <span>Entrando...</span>
+                                }
+                                else
+                                {
+                                    <span>Entrar</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+
+                    @* Link para registro *@
+                    <div class="text-center mt-4">
+                        <p class="mb-0">Não tem uma conta? <a href="register" class="text-primary fw-bold">Registre-se</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Código da página *@
+@code {
+    // Requisição de login
+    private LoginRequestDto loginRequest = new();
+    private bool isLoading;
+    private string? errorMessage;
+
+    // Método para lidar com o login
+    private async Task HandleLogin()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = null;
+
+            var response = await AuthService.LoginAsync(loginRequest);
+            if (response.IsSuccess)
+            {
+                NavigationManager.NavigateTo("/");
+            }
+            else
+            {
+                errorMessage = response.ErrorMessage ?? "Erro ao fazer login. Por favor, tente novamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Ocorreu um erro ao tentar fazer login. Por favor, tente novamente.";
+            Console.WriteLine($"Erro no login: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

@@ -1,0 +1,109 @@
+@* Componente para exibir notificações (toasts) na interface do usuário. *@
+@* Se inscreve no ToastService para exibir mensagens de sucesso, erro, aviso ou informação. *@
+@inject ToastService ToastService
+@implements IDisposable
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    @foreach (var toast in _toastList)
+    {
+        <div class="toast show @GetToastClass(toast.Level)" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i class="bi @GetToastIcon(toast.Level) me-2"></i>
+                <strong class="me-auto">@GetToastTitle(toast.Level)</strong>
+                <button type="button" class="btn-close" @onclick="() => RemoveToast(toast)"></button>
+            </div>
+            <div class="toast-body">
+                @toast.Message
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    // Lógica do componente Toast.
+
+    // Classe interna para representar uma instância individual de uma notificação toast.
+    private class ToastInstance
+    {
+        public string Message { get; set; } = "";
+        public ToastLevel Level { get; set; }
+    }
+
+    // Lista de toasts atualmente visíveis.
+    private List<ToastInstance> _toastList = new();
+
+    // Método executado ao inicializar o componente.
+    // Inscreve-se no evento OnShow do ToastService.
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += ShowToast;
+    }
+
+    // Retorna a classe CSS apropriada para o toast com base no seu nível (sucesso, erro, etc.).
+    private string GetToastClass(ToastLevel level)
+    {
+        return level switch
+        {
+            ToastLevel.Success => "bg-success text-white",
+            ToastLevel.Error => "bg-danger text-white",
+            ToastLevel.Warning => "bg-warning",
+            ToastLevel.Info => "bg-info",
+            _ => "bg-info"
+        };
+    }
+
+    // Retorna o ícone Bootstrap apropriado para o toast com base no seu nível.
+    private string GetToastIcon(ToastLevel level)
+    {
+        return level switch
+        {
+            ToastLevel.Success => "bi-check-circle-fill",
+            ToastLevel.Error => "bi-exclamation-circle-fill",
+            ToastLevel.Warning => "bi-exclamation-triangle-fill",
+            ToastLevel.Info => "bi-info-circle-fill",
+            _ => "bi-info-circle-fill"
+        };
+    }
+
+    // Retorna o título apropriado para o toast com base no seu nível.
+    private string GetToastTitle(ToastLevel level)
+    {
+        return level switch
+        {
+            ToastLevel.Success => "Sucesso",
+            ToastLevel.Error => "Erro",
+            ToastLevel.Warning => "Atenção",
+            ToastLevel.Info => "Informação",
+            _ => "Informação"
+        };
+    }
+
+    private void ShowToast(string message, ToastLevel level)
+    {
+        var toast = new ToastInstance
+        {
+            Message = message,
+            Level = level
+        };
+        
+        _toastList.Add(toast);
+        InvokeAsync(StateHasChanged);
+
+        // Remove o toast após 5 segundos
+        _ = Task.Delay(5000).ContinueWith(_ =>
+        {
+            RemoveToast(toast);
+        });
+    }
+
+    private void RemoveToast(ToastInstance toast)
+    {
+        _toastList.Remove(toast);
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ToastService.OnShow -= ShowToast;
+    }
+} 

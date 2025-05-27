@@ -1,0 +1,35 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Backend", "Backend", "{5A2C5E3A-D2F7-4D2A-8F0C-31A8C30F81C0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GloboClima.API", "Backend\GloboClima.API\GloboClima.API.csproj", "{9A3C5D23-0422-4B5B-A1B5-7D0C71D3A3F5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Frontend", "Frontend", "{B8E9F2A0-C2C7-4D2A-8F0C-31A8C30F81C0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GloboClima.Web", "Frontend\GloboClima.Web\GloboClima.Web.csproj", "{8B3C5D23-0422-4B5B-A1B5-7D0C71D3A3F5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9A3C5D23-0422-4B5B-A1B5-7D0C71D3A3F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A3C5D23-0422-4B5B-A1B5-7D0C71D3A3F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A3C5D23-0422-4B5B-A1B5-7D0C71D3A3F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A3C5D23-0422-4B5B-A1B5-7D0C71D3A3F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B3C5D23-0422-4B5B-A1B5-7D0C71D3A3F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B3C5D23-0422-4B5B-A1B5-7D0C71D3A3F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B3C5D23-0422-4B5B-A1B5-7D0C71D3A3F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B3C5D23-0422-4B5B-A1B5-7D0C71D3A3F5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9A3C5D23-0422-4B5B-A1B5-7D0C71D3A3F5} = {5A2C5E3A-D2F7-4D2A-8F0C-31A8C30F81C0}
+		{8B3C5D23-0422-4B5B-A1B5-7D0C71D3A3F5} = {B8E9F2A0-C2C7-4D2A-8F0C-31A8C30F81C0}
+	EndGlobalSection
+EndGlobal
