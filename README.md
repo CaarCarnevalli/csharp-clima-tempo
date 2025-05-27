@@ -4,7 +4,9 @@
 GloboClima é uma aplicação web moderna que permite aos usuários consultar informações meteorológicas atualizadas de cidades ao redor do mundo e obter dados detalhados sobre países. A aplicação implementa autenticação de usuários via JWT e permite que usuários autenticados salvem e gerenciem uma lista de cidades favoritas, com persistência de dados utilizando AWS DynamoDB (atualmente com um mock local para desenvolvimento).
 
 ## Estrutura do Projeto
-O projeto é dividido em duas partes principais: um backend construído com ASP.NET Core API e um frontend com Blazor WebAssembly.
+O projeto é dividido em duas partes principais: 
+- um backend construído com ASP.NET Core API
+- E um frontend com Blazor WebAssembly.
 
 ```
 GloboClima/
